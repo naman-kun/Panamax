@@ -1,0 +1,1051 @@
+/* -------------------------------------------------------------------------- */
+/* shadcn/ui Design System & Showcase Styles                                 */
+/* -------------------------------------------------------------------------- */
+
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* Light Theme (Figma defaults) */
+  --bg-page: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-muted: #e2e8f0;
+  --bg-overlay: rgba(15, 23, 42, 0.6);
+
+  --color-foreground: #0f172a;
+  --color-foreground-muted: #475569;
+  --color-foreground-subtle: #64748b;
+  --color-foreground-faint: #94a3b8;
+
+  --color-primary: #0f172a;
+  --color-primary-hover: #1e293b;
+  --color-primary-foreground: #ffffff;
+
+  --border-color: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-card: #e5e7eb;
+
+  --ring-color: rgba(15, 23, 42, 0.2);
+  --accent-color: #0284c7;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-popover: 0px 4px 14px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-figma-card: 0px 4px 12px rgba(174, 174, 174, 0.25);
+
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] {
+  --bg-page: #090d16;
+  --bg-surface: #0f172a;
+  --bg-card: #1e293b;
+  --bg-subtle: #1e293b;
+  --bg-muted: #334155;
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+
+  --color-foreground: #f8fafc;
+  --color-foreground-muted: #cbd5e1;
+  --color-foreground-subtle: #94a3b8;
+  --color-foreground-faint: #64748b;
+
+  --color-primary: #f8fafc;
+  --color-primary-hover: #e2e8f0;
+  --color-primary-foreground: #0f172a;
+
+  --border-color: #334155;
+  --border-strong: #475569;
+  --border-card: #334155;
+
+  --ring-color: rgba(248, 250, 252, 0.3);
+  --shadow-popover: 0px 10px 25px -5px rgba(0, 0, 0, 0.5), 0px 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-figma-card: 0px 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reset & Global Base                                                        */
+/* -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-page);
+  color: var(--color-foreground);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-smooth), color var(--transition-smooth);
+}
+
+/* -------------------------------------------------------------------------- */
+/* App Layout (Top Nav + Sidebar + Content)                                   */
+/* -------------------------------------------------------------------------- */
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar */
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 64px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 24px;
+  height: 24px;
+  fill: var(--color-foreground);
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground);
+}
+
+.brand-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-subtle);
+  color: var(--color-foreground-subtle);
+  border: 1px solid var(--border-color);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle-btn, .nav-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.theme-toggle-btn:hover, .nav-icon-btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+.theme-toggle-btn svg, .nav-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+/* Layout Body */
+.app-body {
+  display: flex;
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Sidebar */
+.app-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-search-box {
+  position: relative;
+}
+
+.sidebar-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--color-foreground);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.sidebar-search-input:focus {
+  border-color: var(--color-foreground);
+  box-shadow: 0 0 0 1px var(--color-foreground);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-foreground-faint);
+}
+
+.sidebar-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-foreground-subtle);
+  padding: 0 12px 6px;
+}
+
+.sidebar-nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav-item a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground-muted);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-nav-item a:hover {
+  background-color: var(--bg-subtle);
+  color: var(--color-foreground);
+}
+
+.sidebar-nav-item.active a {
+  background-color: var(--bg-subtle);
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.nav-count-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-muted);
+  color: var(--color-foreground-subtle);
+}
+
+/* Main Content Area */
+.app-content {
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 980px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component Showcase Section (Figma Frame layout)                             */
+/* -------------------------------------------------------------------------- */
+.component-showcase-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  scroll-margin-top: 80px;
+  transition: border-color var(--transition-fast);
+}
+
+.component-showcase-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Figma Header Section */
+.figma-header {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.figma-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.figma-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 584px;
+}
+
+.figma-title {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 36px;
+  letter-spacing: -0.225px;
+  color: var(--color-foreground);
+}
+
+.figma-description {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: var(--color-foreground-muted);
+}
+
+.figma-docs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.figma-docs-btn:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.figma-docs-btn span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.figma-divider {
+  height: 1px;
+  width: 100%;
+  background-color: var(--border-color);
+}
+
+/* Interactive Playground Container */
+.playground-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 48px 24px;
+  background-color: var(--bg-subtle);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: visible;
+}
+
+.playground-label {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-foreground-subtle);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 1: Tabs (Figma 13:1492)                                          */
+/* -------------------------------------------------------------------------- */
+.tabs-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.tabs-list {
+  display: flex;
+  background-color: var(--bg-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  gap: 2px;
+}
+
+.tab-trigger {
+  flex: 1;
+  padding: 6px 16px;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground-subtle);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-trigger.is-active {
+  background-color: var(--bg-surface);
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.tab-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tab-panel.is-active {
+  display: flex;
+}
+
+.panel-description {
+  font-size: 14px;
+  color: var(--color-foreground-subtle);
+  line-height: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-surface);
+  color: var(--color-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--color-foreground);
+  box-shadow: 0 0 0 1px var(--color-foreground);
+}
+
+.form-btn {
+  align-self: flex-start;
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.form-btn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 2: Switch (Figma 13:1482)                                        */
+/* -------------------------------------------------------------------------- */
+.switch-control-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-track {
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--border-strong);
+  position: relative;
+  transition: background-color var(--transition-smooth);
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.switch-track.is-checked {
+  background-color: var(--color-primary);
+}
+
+.switch-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  display: block;
+  transform: translateX(0);
+  transition: transform var(--transition-smooth);
+}
+
+.switch-track.is-checked .switch-thumb {
+  transform: translateX(20px);
+}
+
+.switch-label-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.switch-state-feedback {
+  font-size: 12px;
+  color: var(--color-foreground-subtle);
+  margin-top: 8px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 3: Slider (Figma 13:1472)                                        */
+/* -------------------------------------------------------------------------- */
+.slider-control-wrap {
+  width: 100%;
+  max-width: 414px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.slider-track-wrap {
+  width: 100%;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.slider-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.slider-range {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+.slider-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  border: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.slider-thumb:active {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 0 4px var(--ring-color);
+}
+
+.slider-value-display {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-foreground-subtle);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 4: Popover (Figma 13:1296)                                       */
+/* -------------------------------------------------------------------------- */
+.popover-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.popover-trigger-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.popover-trigger-btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--color-foreground);
+}
+
+.popover-card {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 320px;
+  box-shadow: var(--shadow-popover);
+  z-index: 50;
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.popover-card.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.popover-card.static-demo {
+  position: static;
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.popover-header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.popover-header-subtitle {
+  font-size: 14px;
+  color: var(--color-foreground-faint);
+}
+
+.popover-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popover-row-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  width: 90px;
+}
+
+.popover-row-input {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.popover-row-input:focus {
+  border-color: var(--color-foreground);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 5: Tooltip (Figma 13:1551)                                       */
+/* -------------------------------------------------------------------------- */
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-trigger-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.tooltip-trigger-btn:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+.tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 60;
+}
+
+.tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: var(--color-primary) transparent transparent transparent;
+}
+
+.tooltip-wrap:hover .tooltip-bubble,
+.tooltip-trigger-btn:focus-visible + .tooltip-bubble {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 6: Hover Card (Figma 13:1246)                                    */
+/* -------------------------------------------------------------------------- */
+.hovercard-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.hovercard-trigger {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast);
+}
+
+.hovercard-trigger:hover, .hovercard-trigger:focus-visible {
+  color: var(--accent-color);
+}
+
+.hovercard-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 17px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  width: 320px;
+  box-shadow: var(--shadow-figma-card), var(--shadow-md);
+  z-index: 50;
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.hovercard-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: #000000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-circle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hovercard-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.hovercard-handle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.hovercard-bio {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-foreground);
+  line-height: 20px;
+}
+
+.hovercard-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-foreground-subtle);
+}
+
+.hovercard-meta svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component 7: Separator (Figma 13:1458)                                     */
+/* -------------------------------------------------------------------------- */
+.separator-preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.separator-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.separator-header-desc {
+  font-size: 14px;
+  color: var(--color-foreground-muted);
+}
+
+.sep-horizontal {
+  width: 100%;
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.separator-links-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-foreground);
+}
+
+.sep-vertical {
+  width: 1px;
+  height: 16px;
+  background-color: var(--border-color);
+}
+
+.separator-links-row a {
+  color: var(--color-foreground);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.separator-links-row a:hover {
+  color: var(--accent-color);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Code Snippet Drawer / Viewer                                               */
+/* -------------------------------------------------------------------------- */
+.code-preview-section {
+  margin-top: 8px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.code-tabs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.code-tab-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-foreground-subtle);
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+
+.code-tab-btn.active {
+  color: var(--color-foreground);
+  background-color: var(--bg-subtle);
+}
+
+.copy-code-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.copy-code-btn:hover {
+  background-color: var(--bg-muted);
+}
+
+.code-block-pre {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: 220px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive Layout                                                          */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .app-sidebar {
+    display: none;
+  }
+  .app-content {
+    padding: 24px 16px;
+  }
+  .component-showcase-card {
+    padding: 24px 16px;
+  }
+  .figma-header-top {
+    flex-direction: column;
+    gap: 16px;
+  }
+}

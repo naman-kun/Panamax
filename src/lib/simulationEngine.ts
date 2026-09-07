@@ -1,304 +1,424 @@
 // Simulation Engine for Panamax Freight Forecasting & Decision Intelligence
-// Authentic domain realities for 75,000 MT Panamax bulk commodity corridors
+// Authentic maritime realities for 75,000 MT Panamax bulk commodity corridors to India
 
-export interface FreightDataPoint {
-  date: string;
-  historicalFreight?: number;
-  predictedFreight?: number;
-  ciLower?: number;
-  ciUpper?: number;
-  bunkerPrice: number;
-  coalPrice: number;
-  isForecast?: boolean;
+export interface PortInfo {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  primaryCargo: string;
+  baseRateUSD: number; // typical benchmark rate in $/MT
+  volatilityIndex: number;
+  nauticalMilesToEastIndia: number;
 }
 
-export interface SimulationOverrides {
-  bunkerShiftPct?: number; // e.g. -0.30 to +0.30 (-30% to +30%)
-  lookbackMonths?: number;  // 3, 12, 36
-  route?: string;
-  vesselClass?: string;
+// Major countries and ports that export bulk commodities to India
+export const SOURCE_EXPORT_PORTS: PortInfo[] = [
+  // Indonesia (Coal & Minerals)
+  {
+    id: 'id-taboneo',
+    name: 'Taboneo (South Kalimantan)',
+    country: 'Indonesia',
+    region: 'Southeast Asia',
+    primaryCargo: 'Thermal Coal (GAR 4200/5000)',
+    baseRateUSD: 11.80,
+    volatilityIndex: 1.15,
+    nauticalMilesToEastIndia: 2420,
+  },
+  {
+    id: 'id-muara',
+    name: 'Muara Pantai (East Kalimantan)',
+    country: 'Indonesia',
+    region: 'Southeast Asia',
+    primaryCargo: 'Thermal & Coking Coal',
+    baseRateUSD: 12.40,
+    volatilityIndex: 1.18,
+    nauticalMilesToEastIndia: 2510,
+  },
+  {
+    id: 'id-balikpapan',
+    name: 'Balikpapan (East Kalimantan)',
+    country: 'Indonesia',
+    region: 'Southeast Asia',
+    primaryCargo: 'Crude & Heavy Fuel Oil',
+    baseRateUSD: 13.10,
+    volatilityIndex: 1.12,
+    nauticalMilesToEastIndia: 2470,
+  },
+
+  // Russia (Crude Oil, Coal & Fertilizer)
+  {
+    id: 'ru-primorsk',
+    name: 'Primorsk (Baltic Sea)',
+    country: 'Russia',
+    region: 'Baltic / Europe',
+    primaryCargo: 'Urals Crude Oil',
+    baseRateUSD: 88.50,
+    volatilityIndex: 1.45,
+    nauticalMilesToEastIndia: 8450,
+  },
+  {
+    id: 'ru-novorossiysk',
+    name: 'Novorossiysk (Black Sea)',
+    country: 'Russia',
+    region: 'Black Sea',
+    primaryCargo: 'Siberian Light Crude & Grain',
+    baseRateUSD: 74.20,
+    volatilityIndex: 1.38,
+    nauticalMilesToEastIndia: 5120,
+  },
+  {
+    id: 'ru-ust-luga',
+    name: 'Ust-Luga (Baltic Sea)',
+    country: 'Russia',
+    region: 'Baltic / Europe',
+    primaryCargo: 'Anthracite Coal & Fertilizers',
+    baseRateUSD: 82.00,
+    volatilityIndex: 1.40,
+    nauticalMilesToEastIndia: 8380,
+  },
+  {
+    id: 'ru-kozmino',
+    name: 'Kozmino (Nakhodka / Pacific)',
+    country: 'Russia',
+    region: 'Far East Pacific',
+    primaryCargo: 'ESPO Blend Crude Oil',
+    baseRateUSD: 66.80,
+    volatilityIndex: 1.30,
+    nauticalMilesToEastIndia: 5890,
+  },
+
+  // Australia (Metallurgical & Thermal Coal, Iron Ore)
+  {
+    id: 'au-haypoint',
+    name: 'Hay Point / Dalrymple Bay',
+    country: 'Australia',
+    region: 'Queensland',
+    primaryCargo: 'Prime Hard Coking Coal',
+    baseRateUSD: 19.80,
+    volatilityIndex: 1.25,
+    nauticalMilesToEastIndia: 4950,
+  },
+  {
+    id: 'au-newcastle',
+    name: 'Newcastle Port',
+    country: 'Australia',
+    region: 'New South Wales',
+    primaryCargo: 'High-CV Thermal Coal',
+    baseRateUSD: 20.60,
+    volatilityIndex: 1.22,
+    nauticalMilesToEastIndia: 5350,
+  },
+  {
+    id: 'au-gladstone',
+    name: 'Gladstone Port',
+    country: 'Australia',
+    region: 'Queensland',
+    primaryCargo: 'Coking Coal & Aluminum Bauxite',
+    baseRateUSD: 19.20,
+    volatilityIndex: 1.20,
+    nauticalMilesToEastIndia: 4890,
+  },
+  {
+    id: 'au-hedland',
+    name: 'Port Hedland',
+    country: 'Australia',
+    region: 'Western Australia',
+    primaryCargo: 'Iron Ore Fines & Lumps',
+    baseRateUSD: 15.40,
+    volatilityIndex: 1.15,
+    nauticalMilesToEastIndia: 3420,
+  },
+
+  // South Africa (Coal & Minerals)
+  {
+    id: 'za-richardsbay',
+    name: 'Richards Bay (RBCT)',
+    country: 'South Africa',
+    region: 'Indian Ocean / Africa',
+    primaryCargo: 'RB1 Export Thermal Coal',
+    baseRateUSD: 17.50,
+    volatilityIndex: 1.28,
+    nauticalMilesToEastIndia: 4720,
+  },
+  {
+    id: 'za-saldanha',
+    name: 'Saldanha Bay',
+    country: 'South Africa',
+    region: 'Atlantic / Africa',
+    primaryCargo: 'High Grade Iron Ore',
+    baseRateUSD: 18.90,
+    volatilityIndex: 1.24,
+    nauticalMilesToEastIndia: 5410,
+  },
+
+  // United States (Coal, Crude & Grains)
+  {
+    id: 'us-houston',
+    name: 'Houston / Gulf Coast',
+    country: 'United States',
+    region: 'US Gulf',
+    primaryCargo: 'WTI Midland Crude Oil',
+    baseRateUSD: 48.00,
+    volatilityIndex: 1.35,
+    nauticalMilesToEastIndia: 11400,
+  },
+  {
+    id: 'us-norfolk',
+    name: 'Hampton Roads / Norfolk',
+    country: 'United States',
+    region: 'US East Coast',
+    primaryCargo: 'Low-Vol Metallurgical Coal',
+    baseRateUSD: 44.50,
+    volatilityIndex: 1.30,
+    nauticalMilesToEastIndia: 9800,
+  },
+
+  // UAE / Middle East (Crude & Bunkers)
+  {
+    id: 'ae-fujairah',
+    name: 'Fujairah Anchorage',
+    country: 'United Arab Emirates',
+    region: 'Gulf of Oman',
+    primaryCargo: 'Crude Oil & Condensates',
+    baseRateUSD: 14.80,
+    volatilityIndex: 1.18,
+    nauticalMilesToEastIndia: 2050,
+  },
+  {
+    id: 'sa-rastanura',
+    name: 'Ras Tanura Terminal',
+    country: 'Saudi Arabia',
+    region: 'Persian Gulf',
+    primaryCargo: 'Arab Light / Heavy Crude',
+    baseRateUSD: 16.20,
+    volatilityIndex: 1.22,
+    nauticalMilesToEastIndia: 2480,
+  },
+
+  // Brazil (Iron Ore & Agribulk)
+  {
+    id: 'br-tubarao',
+    name: 'Tubarão Terminal',
+    country: 'Brazil',
+    region: 'South America',
+    primaryCargo: 'Carajás Iron Ore Pellets',
+    baseRateUSD: 26.50,
+    volatilityIndex: 1.32,
+    nauticalMilesToEastIndia: 8850,
+  },
+
+  // Mozambique (Coking & Thermal Coal)
+  {
+    id: 'mz-maputo',
+    name: 'Maputo (Matola Coal Hub)',
+    country: 'Mozambique',
+    region: 'East Africa',
+    primaryCargo: 'Moatize Coking & Steam Coal',
+    baseRateUSD: 15.60,
+    volatilityIndex: 1.20,
+    nauticalMilesToEastIndia: 4420,
+  },
+];
+
+// All major East Coast India bulk discharge ports
+export const DESTINATION_INDIAN_PORTS = [
+  {
+    id: 'in-paradip',
+    name: 'Paradip Port',
+    state: 'Odisha',
+    draftMax: '17.1m (Capesize/Panamax)',
+    specialty: 'Primary Crude Oil SPM, Thermal & Coking Coal',
+    congestionIndex: 1.05,
+  },
+  {
+    id: 'in-vizag',
+    name: 'Visakhapatnam (Vizag) Port',
+    state: 'Andhra Pradesh',
+    draftMax: '18.1m Outer Harbour',
+    specialty: 'Steel Plant Coking Coal, Crude & Petroleum',
+    congestionIndex: 1.02,
+  },
+  {
+    id: 'in-haldia',
+    name: 'Haldia Port / Kolkata Dock',
+    state: 'West Bengal',
+    draftMax: '8.5m - 9.2m (Tidal / Handymax/Panamax)',
+    specialty: 'Refinery Ingestion & Eastern Hinterland Coal',
+    congestionIndex: 1.14,
+  },
+  {
+    id: 'in-dhamra',
+    name: 'Dhamra Port',
+    state: 'Odisha',
+    draftMax: '18.5m Deep Draft',
+    specialty: 'All-Weather Deepwater Capesize Coal & Ore',
+    congestionIndex: 0.98,
+  },
+  {
+    id: 'in-krishnapatnam',
+    name: 'Krishnapatnam Port',
+    state: 'Andhra Pradesh',
+    draftMax: '18.5m Deep Draft',
+    specialty: 'Power Plant Coal & Minerals Terminal',
+    congestionIndex: 0.99,
+  },
+  {
+    id: 'in-ennore',
+    name: 'Ennore (Kamarajar Port)',
+    state: 'Tamil Nadu',
+    draftMax: '16.0m Draft',
+    specialty: 'TANGEDCO Dedicated Thermal Coal & Clean Cargo',
+    congestionIndex: 1.01,
+  },
+  {
+    id: 'in-chennai',
+    name: 'Chennai Port',
+    state: 'Tamil Nadu',
+    draftMax: '16.5m Draft',
+    specialty: 'Liquid Cargo & Industrial Bulk Terminal',
+    congestionIndex: 1.03,
+  },
+  {
+    id: 'in-kakinada',
+    name: 'Kakinada Deepwater Port',
+    state: 'Andhra Pradesh',
+    draftMax: '14.5m Draft',
+    specialty: 'Fertilizers, Grains & Off-shore Petroleum',
+    congestionIndex: 1.00,
+  },
+  {
+    id: 'in-gopalpur',
+    name: 'Gopalpur Port',
+    state: 'Odisha',
+    draftMax: '14.5m Draft',
+    specialty: 'Mineral Sands, Fertilizer & Coal',
+    congestionIndex: 0.97,
+  },
+  {
+    id: 'in-gangavaram',
+    name: 'Gangavaram Port',
+    state: 'Andhra Pradesh',
+    draftMax: '20.2m Deepest Draft',
+    specialty: 'Direct Conveyor Coking Coal for Steel Mills',
+    congestionIndex: 0.96,
+  },
+];
+
+// StockItem data model matching the Infragistics Financial Chart reference in code reference.txt
+export class StockItem {
+  public open: number = 0;
+  public high: number = 0;
+  public low: number = 0;
+  public close: number = 0;
+  public volume: number = 0;
+  public date: Date = new Date();
 }
 
-export function generateFreightTimeseries(overrides: SimulationOverrides = {}): FreightDataPoint[] {
-  const { bunkerShiftPct = 0, lookbackMonths = 3 } = overrides;
-  const data: FreightDataPoint[] = [];
+/**
+ * Generates realistic financial OHLC timeseries for the financial chart
+ * Produces dual data series:
+ * 1. Panamax Neural AI Forward Forecast (purple curve in reference)
+ * 2. Baltic Realized Spot Market Benchmark (green curve in reference)
+ */
+export function generateRouteFinancialData(
+  sourceId: string,
+  destId: string,
+  timeframe: '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL' = '1Y'
+): {
+  panamaxForecast: StockItem[];
+  marketBenchmark: StockItem[];
+  currentPanamaxRate: number;
+  currentBenchmarkRate: number;
+  percentChangePanamax: number;
+  percentChangeBenchmark: number;
+  source: PortInfo;
+  destination: (typeof DESTINATION_INDIAN_PORTS)[0];
+} {
+  const source = SOURCE_EXPORT_PORTS.find((p) => p.id === sourceId) || SOURCE_EXPORT_PORTS[0];
+  const destination = DESTINATION_INDIAN_PORTS.find((p) => p.id === destId) || DESTINATION_INDIAN_PORTS[0];
 
-  const baseBunker = 610; // USD/MT baseline VLSFO
-  const adjustedBunker = baseBunker * (1 + bunkerShiftPct);
+  // Base rate calculated from source rate + destination port factor
+  const baseRate = source.baseRateUSD * destination.congestionIndex;
+  const vol = source.volatilityIndex;
 
-  // Freight sensitivity: ~42% of Panamax operating cost is bunker fuel
-  const fuelImpactPerMT = ((adjustedBunker - baseBunker) / baseBunker) * 4.2;
+  // Determine number of trading days based on timeframe
+  let days = 365;
+  if (timeframe === '1M') days = 30;
+  else if (timeframe === '3M') days = 90;
+  else if (timeframe === '6M') days = 180;
+  else if (timeframe === 'YTD') days = 250;
+  else if (timeframe === '1Y') days = 365;
+  else if (timeframe === 'ALL') days = 730;
 
-  // Generate historical points (e.g. 14 points leading up to today)
-  const historicalDates = [
-    'May 15', 'May 29', 'Jun 12', 'Jun 26', 'Jul 10', 
-    'Jul 24', 'Aug 07', 'Aug 21', 'Sep 04', 'Sep 18', 
-    'Oct 02', 'Oct 16', 'Oct 30', 'Nov 13'
-  ];
+  const now = new Date();
+  const panamaxItems: StockItem[] = [];
+  const benchmarkItems: StockItem[] = [];
 
-  const historicalBase = [
-    11.20, 11.55, 11.90, 12.40, 12.10, 
-    11.85, 12.30, 12.75, 13.10, 12.95, 
-    13.40, 13.80, 13.50, 13.90
-  ];
+  let pClose = baseRate * 0.88;
+  let bClose = baseRate * 0.90;
 
-  historicalDates.forEach((date, i) => {
-    const histFreight = historicalBase[i];
-    const histBunker = 590 + Math.sin(i * 0.6) * 25;
-    data.push({
-      date,
-      historicalFreight: Number(histFreight.toFixed(2)),
-      bunkerPrice: Math.round(histBunker),
-      coalPrice: Math.round(112 + Math.cos(i * 0.4) * 8),
-      isForecast: false,
-    });
-  });
+  for (let i = days; i >= 0; i--) {
+    const itemDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const progress = 1 - i / days; // 0 to 1
 
-  // Last historical point connects smoothly to forecast
-  const lastHist = data[data.length - 1];
+    // Realistic market wave patterns
+    const seasonalWave = Math.sin(progress * Math.PI * 3.5) * 1.4 * vol;
+    const microJitterP = (Math.sin(i * 1.7) + Math.cos(i * 0.9)) * 0.35 * vol;
+    const microJitterB = (Math.cos(i * 1.5) + Math.sin(i * 1.1)) * 0.45 * vol;
 
-  // Forecast points (next 8 steps: +15d, +30d, +45d, +60d, +75d, +90d, +105d, +120d)
-  const forecastDates = [
-    'Nov 27', 'Dec 11', 'Dec 25', 'Jan 08', 
-    'Jan 22', 'Feb 05', 'Feb 19', 'Mar 05'
-  ];
+    // AI model predictive edge: smoother upward optimization
+    pClose = Number((baseRate * (0.90 + progress * 0.28) + seasonalWave + microJitterP).toFixed(2));
+    bClose = Number((baseRate * (0.88 + progress * 0.20) + seasonalWave * 1.2 + microJitterB).toFixed(2));
 
-  // Bridge point
-  data[data.length - 1] = {
-    ...lastHist,
-    predictedFreight: lastHist.historicalFreight,
-    ciLower: lastHist.historicalFreight,
-    ciUpper: lastHist.historicalFreight,
+    pClose = Math.max(5.0, pClose);
+    bClose = Math.max(5.0, bClose);
+
+    // Panamax Item (Purple)
+    const pItem = new StockItem();
+    pItem.date = itemDate;
+    pItem.open = Number((pClose - 0.25).toFixed(2));
+    pItem.high = Number((pClose + 0.45).toFixed(2));
+    pItem.low = Number((pClose - 0.40).toFixed(2));
+    pItem.close = pClose;
+    pItem.volume = Math.round(75000 + Math.sin(i) * 15000);
+    panamaxItems.push(pItem);
+
+    // Benchmark Item (Green)
+    const bItem = new StockItem();
+    bItem.date = itemDate;
+    bItem.open = Number((bClose - 0.30).toFixed(2));
+    bItem.high = Number((bClose + 0.55).toFixed(2));
+    bItem.low = Number((bClose - 0.50).toFixed(2));
+    bItem.close = bClose;
+    bItem.volume = Math.round(70000 + Math.cos(i) * 18000);
+    benchmarkItems.push(bItem);
+  }
+
+  // Set data intent for Series Title exactly as in code reference.txt
+  (panamaxItems as any).__dataIntents = {
+    close: ['SeriesTitle/Panamax AI Neural Forecast'],
+  };
+  (benchmarkItems as any).__dataIntents = {
+    close: ['SeriesTitle/Baltic Realized Spot Benchmark'],
   };
 
-  forecastDates.forEach((date, i) => {
-    const step = i + 1;
-    // Base trend: seasonal monsoon easing, plus bunker impact
-    const trend = -0.35 * step + fuelImpactPerMT * (0.8 + step * 0.15);
-    const predicted = Number((13.90 + trend).toFixed(2));
-    
-    // Expanding 95% Confidence Interval band
-    const ciSpread = 0.28 + step * 0.18;
-    const ciLower = Number((predicted - ciSpread).toFixed(2));
-    const ciUpper = Number((predicted + ciSpread).toFixed(2));
-    const bunker = Math.round(adjustedBunker + Math.sin(step) * 12);
+  const initialP = panamaxItems[0].close || baseRate;
+  const currentP = panamaxItems[panamaxItems.length - 1].close || baseRate;
+  const percentChangePanamax = Number((((currentP - initialP) / initialP) * 100).toFixed(1));
 
-    data.push({
-      date,
-      predictedFreight: predicted,
-      ciLower: Math.max(8.0, ciLower),
-      ciUpper: ciUpper,
-      bunkerPrice: bunker,
-      coalPrice: Math.round(116 + step * 1.2),
-      isForecast: true,
-    });
-  });
-
-  return data;
-}
-
-// Demurrage & Despatch Calculations (75,000 MT Panamax laytime: 72 hrs)
-export interface DemurrageResult {
-  queueHours: number;
-  isDemurrage: boolean;
-  amount: number;
-  formattedAmount: string;
-  statusLabel: string;
-  dailyRate: number;
-  laytimeHours: number;
-  varianceHours: number;
-}
-
-export function calculateDemurrage(queueHours: number): DemurrageResult {
-  const laytimeHours = 72;
-  const dailyDemurrageRate = 25000; // $25,000/day
-  const hourlyDemurrageRate = dailyDemurrageRate / 24; // ~$1,041.67/hr
-  const hourlyDespatchRate = hourlyDemurrageRate / 2; // Despatch is 50% of demurrage
-
-  const variance = queueHours - laytimeHours;
-  const isDemurrage = variance > 0;
-
-  if (isDemurrage) {
-    const amount = Math.round(variance * hourlyDemurrageRate);
-    return {
-      queueHours,
-      isDemurrage: true,
-      amount,
-      formattedAmount: `-$${amount.toLocaleString()}`,
-      statusLabel: 'Demurrage Penalty Incurred',
-      dailyRate: dailyDemurrageRate,
-      laytimeHours,
-      varianceHours: variance,
-    };
-  } else {
-    const amount = Math.round(Math.abs(variance) * hourlyDespatchRate);
-    return {
-      queueHours,
-      isDemurrage: false,
-      amount,
-      formattedAmount: `+$${amount.toLocaleString()}`,
-      statusLabel: 'Despatch Bonus Earned',
-      dailyRate: dailyDemurrageRate,
-      laytimeHours,
-      varianceHours: Math.abs(variance),
-    };
-  }
-}
-
-// Chartering Waterfall Optimization
-export interface WaterfallComponent {
-  name: string;
-  spot: number;
-  optimized: number;
-  unit: string;
-}
-
-export interface CharterOptimizationResult {
-  volumeMT: number;
-  vesselsRequired: number;
-  spotTotal: number;
-  optimizedTotal: number;
-  netSavings: number;
-  verdict: string;
-  verdictAction: 'IMMEDIATE' | 'STAGGER' | 'TIME_CHARTER';
-  components: WaterfallComponent[];
-}
-
-export function calculateCharterOptimization(volumeMT: number): CharterOptimizationResult {
-  const vesselsRequired = Math.ceil(volumeMT / 75000);
-  
-  // Cost per MT
-  const fobRate = 110.00; // FOB Commodity Cost
-  const spotFreightRate = 13.80;
-  const optFreightRate = 11.45;
-  const spotBunkerCostPerMT = 4.20;
-  const optBunkerCostPerMT = 3.65;
-  const spotPortFeesPerMT = 1.60;
-  const optPortFeesPerMT = 1.15;
-
-  const spotPerMT = fobRate + spotFreightRate + spotBunkerCostPerMT + spotPortFeesPerMT;
-  const optPerMT = fobRate + optFreightRate + optBunkerCostPerMT + optPortFeesPerMT;
-
-  const spotTotal = Math.round(spotPerMT * volumeMT);
-  const optimizedTotal = Math.round(optPerMT * volumeMT);
-  const netSavings = spotTotal - optimizedTotal;
-
-  let verdict = '';
-  let verdictAction: 'IMMEDIATE' | 'STAGGER' | 'TIME_CHARTER' = 'IMMEDIATE';
-
-  if (volumeMT <= 75000) {
-    verdict = 'VERDICT: FIX 1 PANAMAX VESSEL TODAY — LOCK 72H RATE WINDOW BEFORE MONSOON REBOUND';
-    verdictAction = 'IMMEDIATE';
-  } else if (volumeMT <= 150000) {
-    verdict = `VERDICT: FIX 1 VESSEL NOW ($11.45/MT), DELAY 2ND FIXTURE BY 14 DAYS (NET SAVINGS $${netSavings.toLocaleString()})`;
-    verdictAction = 'STAGGER';
-  } else {
-    verdict = `VERDICT: STAGGER FIXTURES — FIX 2 SPOT PANAMAX NOW, HEDGE BALANCE VIA 45-DAY PERIOD CHARTER`;
-    verdictAction = 'TIME_CHARTER';
-  }
-
-  const components: WaterfallComponent[] = [
-    {
-      name: 'FOB Cargo',
-      spot: Math.round(fobRate * volumeMT),
-      optimized: Math.round(fobRate * volumeMT),
-      unit: 'USD',
-    },
-    {
-      name: 'Ocean Freight',
-      spot: Math.round(spotFreightRate * volumeMT),
-      optimized: Math.round(optFreightRate * volumeMT),
-      unit: 'USD',
-    },
-    {
-      name: 'Bunker Fuel',
-      spot: Math.round(spotBunkerCostPerMT * volumeMT),
-      optimized: Math.round(optBunkerCostPerMT * volumeMT),
-      unit: 'USD',
-    },
-    {
-      name: 'Port & Laytime',
-      spot: Math.round(spotPortFeesPerMT * volumeMT),
-      optimized: Math.round(optPortFeesPerMT * volumeMT),
-      unit: 'USD',
-    },
-  ];
+  const initialB = benchmarkItems[0].close || baseRate;
+  const currentB = benchmarkItems[benchmarkItems.length - 1].close || baseRate;
+  const percentChangeBenchmark = Number((((currentB - initialB) / initialB) * 100).toFixed(1));
 
   return {
-    volumeMT,
-    vesselsRequired,
-    spotTotal,
-    optimizedTotal,
-    netSavings,
-    verdict,
-    verdictAction,
-    components,
+    panamaxForecast: panamaxItems,
+    marketBenchmark: benchmarkItems,
+    currentPanamaxRate: currentP,
+    currentBenchmarkRate: currentB,
+    percentChangePanamax,
+    percentChangeBenchmark,
+    source,
+    destination,
   };
 }
-
-// Stress Test Scenarios
-export type StressScenarioId = 'baseline' | 'malacca' | 'bunker' | 'cyclone';
-
-export interface StressScenarioData {
-  id: StressScenarioId;
-  name: string;
-  iconColor: string;
-  description: string;
-  freightInflationPct: number;
-  deliverySlippageDays: number;
-  demurrageExposureUSD: number;
-  bunkerSpikePct: number;
-  confidenceScore: number;
-  recommendedAction: string;
-}
-
-export const STRESS_SCENARIOS: Record<StressScenarioId, StressScenarioData> = {
-  baseline: {
-    id: 'baseline',
-    name: 'Normal Weather / Open Straits',
-    iconColor: 'emerald',
-    description: 'Current baseline shipping conditions across Sunda, Malacca, and Bay of Bengal.',
-    freightInflationPct: 0,
-    deliverySlippageDays: 0,
-    demurrageExposureUSD: 0,
-    bunkerSpikePct: 0,
-    confidenceScore: 94.2,
-    recommendedAction: 'Standard chartering schedule on 30-day forward forecast.',
-  },
-  malacca: {
-    id: 'malacca',
-    name: 'Malacca Chokepoint Bottleneck',
-    iconColor: 'amber',
-    description: 'Vessel queue surge and speed restrictions through Singapore & Malacca Straits.',
-    freightInflationPct: 24,
-    deliverySlippageDays: 6.5,
-    demurrageExposureUSD: 162500,
-    bunkerSpikePct: 8.5,
-    confidenceScore: 89.6,
-    recommendedAction: 'Reroute via Sunda Strait; secure laytime extensions in charter party.',
-  },
-  bunker: {
-    id: 'bunker',
-    name: 'Global Bunker Fuel Shock (+25%)',
-    iconColor: 'rose',
-    description: 'Sudden crude market dislocation driving Singapore VLSFO to $765/MT.',
-    freightInflationPct: 31,
-    deliverySlippageDays: 1.2,
-    demurrageExposureUSD: 45000,
-    bunkerSpikePct: 25.0,
-    confidenceScore: 92.4,
-    recommendedAction: 'Execute bunker swap hedging; favor eco-engine Panamax tonnage.',
-  },
-  cyclone: {
-    id: 'cyclone',
-    name: 'Bay of Bengal Cyclone Alert',
-    iconColor: 'purple',
-    description: 'Severe deep depression shutting Paradip, Dhamra & Vizag anchorages.',
-    freightInflationPct: 42,
-    deliverySlippageDays: 11.0,
-    demurrageExposureUSD: 285000,
-    bunkerSpikePct: 14.0,
-    confidenceScore: 95.8,
-    recommendedAction: 'Invoke force majeure clauses; drift in safe deep water outside EEZ.',
-  },
-};

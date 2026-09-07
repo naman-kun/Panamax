@@ -28,21 +28,21 @@ export function BentoGrid() {
   return (
     <section id="features" className="relative px-4 sm:px-6 lg:px-8 py-20 bg-black">
       <div className="mx-auto max-w-6xl">
-        
+
         {/* Section Header */}
         <div className="text-left max-w-3xl mb-14">
           <h2 className="text-3xl sm:text-5xl font-bold text-white tracking-tight">
             Built for chartering desks that demand precision.
           </h2>
           <p className="text-sm sm:text-base text-zinc-400 mt-3">
-            Every layer of the platform is designed to eliminate uncertainty in global maritime oil logistics, 
+            Every layer of the platform is designed to eliminate uncertainty in global maritime oil logistics,
             empowering procurement leaders to charter at the statistical optimum.
           </p>
         </div>
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
-          
+
           {/* Bento Card 1: 30/60/90-Day AI Forecasting (Spans 2 cols) */}
           <div className="md:col-span-2 bento-card p-6 flex flex-col justify-between group">
             <div>
@@ -59,25 +59,22 @@ export function BentoGrid() {
                 <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-lg border border-white/10 text-xs">
                   <button
                     onClick={() => setActiveTab('30')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      activeTab === '30' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 rounded-md transition-all ${activeTab === '30' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
+                      }`}
                   >
                     30 Days
                   </button>
                   <button
                     onClick={() => setActiveTab('60')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      activeTab === '60' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 rounded-md transition-all ${activeTab === '60' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
+                      }`}
                   >
                     60 Days
                   </button>
                   <button
                     onClick={() => setActiveTab('90')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      activeTab === '90' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 rounded-md transition-all ${activeTab === '90' ? 'bg-white/15 text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
+                      }`}
                   >
                     90 Days
                   </button>
@@ -112,8 +109,8 @@ export function BentoGrid() {
                       activeTab === '30'
                         ? 'M 0 45 Q 100 65 200 35 T 400 50 L 400 80 L 0 80 Z'
                         : activeTab === '60'
-                        ? 'M 0 55 Q 120 70 240 30 T 400 20 L 400 80 L 0 80 Z'
-                        : 'M 0 60 Q 150 40 250 35 T 400 15 L 400 80 L 0 80 Z'
+                          ? 'M 0 55 Q 120 70 240 30 T 400 20 L 400 80 L 0 80 Z'
+                          : 'M 0 60 Q 150 40 250 35 T 400 15 L 400 80 L 0 80 Z'
                     }
                     fill="url(#bentoGrad)"
                   />
@@ -123,8 +120,8 @@ export function BentoGrid() {
                       activeTab === '30'
                         ? 'M 0 45 Q 100 65 200 35 T 400 50'
                         : activeTab === '60'
-                        ? 'M 0 55 Q 120 70 240 30 T 400 20'
-                        : 'M 0 60 Q 150 40 250 35 T 400 15'
+                          ? 'M 0 55 Q 120 70 240 30 T 400 20'
+                          : 'M 0 60 Q 150 40 250 35 T 400 15'
                     }
                     fill="none"
                     stroke="#ffffff"

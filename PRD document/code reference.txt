@@ -1,0 +1,178 @@
+data(don't use this):
+
+
+export class StocksHistory {
+    /** gets stock OHLC prices for multiple stocks */
+
+    public static async getMultipleStocks(): Promise<any[]> {
+        // getting prices of multiples stocks asynchronously
+        const dataSources: any[] = [
+            //await this.getAmazonStock(),
+            await this.getGoogleStock(),
+            await this.getMicrosoftStock(),
+            //await this.getTeslaStock()
+        ];
+
+        return new Promise<any[]>((resolve, reject) => {
+            resolve(dataSources);
+        });
+    }
+
+    /** gets Amazon stock OHLC prices from a .JSON file */
+    public static async getAmazonStock(): Promise<StockItem[]> {
+        let url = "https://static.infragistics.com/xplatform/data/stocks/stockAmazon.json";
+        let response = await fetch(url);
+        let jsonData = await response.json();
+        let stockData = this.convertData(jsonData);
+        // setting data intent for Series Title, e.g. FinancialChart usage
+        (stockData as any).__dataIntents = {
+            close: ["SeriesTitle/Amazon"]
+        };
+        // console.log("fetchAmazonStock: ", stockData.length);
+
+        return new Promise<StockItem[]>((resolve, reject) => {
+            resolve(stockData);
+        });
+    }
+
+    /** gets Tesla stock OHLC prices from a .JSON file */
+    public static async getTeslaStock(): Promise<StockItem[]> {
+        let url = "https://static.infragistics.com/xplatform/data/stocks/stockTesla.json";
+        let response = await fetch(url);
+        let jsonData = await response.json();
+        let stockData = this.convertData(jsonData);
+        // setting data intent for Series Title, e.g. FinancialChart usage
+        (stockData as any).__dataIntents = {
+            close: ["SeriesTitle/Tesla"]
+        };
+        return new Promise<StockItem[]>((resolve, reject) => {
+            resolve(stockData);
+        });
+    }
+
+    /** gets Microsoft stock OHLC prices from a .JSON file */
+    public static async getMicrosoftStock(): Promise<StockItem[]> {
+        let url = "https://static.infragistics.com/xplatform/data/stocks/stockMicrosoft.json";
+        let response = await fetch(url);
+        let jsonData = await response.json();
+        let stockData = this.convertData(jsonData);
+        // setting data intent for Series Title, e.g. FinancialChart usage
+        (stockData as any).__dataIntents = {
+            close: ["SeriesTitle/Microsoft"]
+        };
+        return new Promise<StockItem[]>((resolve, reject) => {
+            resolve(stockData);
+        });
+    }
+
+    /** gets Google stock OHLC prices from a .JSON file */
+    public static async getGoogleStock(): Promise<StockItem[]> {
+        let url = "https://static.infragistics.com/xplatform/data/stocks/stockGoogle.json";
+        let response = await fetch(url);
+        let jsonData = await response.json();
+        let stockData = this.convertData(jsonData);
+        // setting data intent for Series Title, e.g. FinancialChart usage
+        (stockData as any).__dataIntents = {
+            close: ["SeriesTitle/Google"]
+        };
+        return new Promise<StockItem[]>((resolve, reject) => {
+            resolve(stockData);
+        });
+    }
+
+    public static convertData(jsonData: any[]): StockItem[] {
+        let stockItems: StockItem[] = [];
+
+        for (let json of jsonData) {
+            let parts = json.date.split("-"); // "2020-01-01"
+            let item = new StockItem();
+            item.date = new Date(parts[0], parts[1], parts[2]);
+            item.open = json.open;
+            item.high = json.high;
+            item.low = json.low;
+            item.close = json.close;
+            item.volume = json.volume;
+            stockItems.push(item);
+
+        }
+
+        return stockItems;
+    }
+}
+
+export class StockItem {
+    public open?: number;
+    public close?: number;
+    public high?: number;
+    public low?: number;
+    public volume?: number;
+
+    public date?: Date;
+
+}
+
+Typerscript:
+import { FinancialChartYAxisMode, IgcFinancialChartModule } from 'igniteui-webcomponents-charts';
+import { IgcFinancialChartComponent } from 'igniteui-webcomponents-charts';
+import { ModuleManager } from 'igniteui-webcomponents-core';
+import { StocksHistory } from './StocksHistory';
+
+ModuleManager.register(IgcFinancialChartModule);
+
+export class FinancialChartMultipleData {
+
+    private chart: IgcFinancialChartComponent;
+
+    constructor() {
+        this.chart = document.getElementById('chart') as IgcFinancialChartComponent;
+        this.chart.yAxisMode = FinancialChartYAxisMode.PercentChange;
+        this.chart.yAxisTitle = "Percent Changed";
+        this.getData();
+    }
+
+    getData(): void {
+        StocksHistory.getMultipleStocks().then((stocks: any[]) => {
+            this.chart.dataSource = stocks;
+        });
+    }
+}
+
+new FinancialChartMultipleData();
+
+HTML:
+<!DOCTYPE html >
+    <html>
+    <head>
+    <title>FinancialChartMultipleData </title>
+    < meta charset = "UTF-8" />
+
+        <link rel="shortcut icon" href = "https://dl.infragistics.com/x/img/browsers/wc.png" >
+            <link rel="stylesheet" href = "https://fonts.googleapis.com/icon?family=Material+Icons" />
+                <link rel="stylesheet" href = "https://fonts.googleapis.com/css?family=Kanit&display=swap" />
+                    <link rel="stylesheet" href = "https://fonts.googleapis.com/css?family=Titillium Web" />
+                        <link rel="stylesheet" href = "https://dl.infragistics.com/x/css/samples/shared.v8.css" type = "text/css" />
+
+                            </head>
+
+                            < body >
+                            <div id="root" >
+
+                                <div class="container sample" >
+                                    <igc-financial - chart id = "chart" width = "100%" height = "100%"
+chart - title="Google vs Microsoft"
+subtitle = "Between 2013 and 2017"
+chart - type="Line"
+thickness = "2" >
+    </igc-financial-chart>
+    </div>
+
+    </div>
+    < !--This script is needed only for parcel and it will be excluded for webpack-- >
+        <% if (false) { %> <script src="src/index.ts" > </script><% } %>
+
+            </body>
+            </html>
+
+CSS:
+/* shared styles are loaded from: */
+/* https://dl.infragistics.com/x/css/samples/shared.v8.css */

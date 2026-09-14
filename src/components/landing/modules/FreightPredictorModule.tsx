@@ -24,6 +24,7 @@ import {
   DESTINATION_INDIAN_PORTS,
   generateRouteFinancialData,
   PortInfo,
+  FinancialYAxisMode,
 } from '@/lib/simulationEngine';
 import { FinancialChart } from '../FinancialChart';
 
@@ -31,12 +32,12 @@ export function FreightPredictorModule() {
   const [selectedSourceId, setSelectedSourceId] = useState<string>('id-taboneo');
   const [selectedDestId, setSelectedDestId] = useState<string>('in-paradip');
   const [timeframe, setTimeframe] = useState<'1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL'>('1Y');
-  const [yAxisMode, setYAxisMode] = useState<'PercentChange' | 'Numeric'>('PercentChange');
+  const [yAxisMode, setYAxisMode] = useState<FinancialYAxisMode>('PercentChange');
 
-  // Dynamic route data calculation with smooth recalculation
+  // Dynamic route data calculation with smooth recalculation calibrated against Baltic Panamax DB
   const routeData = useMemo(() => {
-    return generateRouteFinancialData(selectedSourceId, selectedDestId, timeframe);
-  }, [selectedSourceId, selectedDestId, timeframe]);
+    return generateRouteFinancialData(selectedSourceId, selectedDestId, timeframe, 'panamax', yAxisMode);
+  }, [selectedSourceId, selectedDestId, timeframe, yAxisMode]);
 
   const sourcePort = routeData.source;
   const destPort = routeData.destination;
@@ -53,11 +54,11 @@ export function FreightPredictorModule() {
 
   return (
     <div className="space-y-6 text-left">
-      
+
       {/* Route Selection Bar with 2 Separate Dropdowns */}
       <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950 border border-white/10 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
+
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 border border-white/10 text-white shadow-inner">
               <Navigation className="h-4 w-4 text-zinc-300" />
@@ -78,11 +79,10 @@ export function FreightPredictorModule() {
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  timeframe === tf
+                className={`px-2.5 py-1 rounded-lg transition-all ${timeframe === tf
                     ? 'bg-white text-black font-bold shadow-md'
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 {tf}
               </button>
@@ -93,7 +93,7 @@ export function FreightPredictorModule() {
 
         {/* The 2 Separate Dropdown Menus */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2 border-t border-white/5">
-          
+
           {/* Dropdown 1: Source Export Port (Countries Exporting to India) */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
@@ -127,11 +127,10 @@ export function FreightPredictorModule() {
                         <button
                           key={p.id}
                           onClick={() => setSelectedSourceId(p.id)}
-                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                            selectedSourceId === p.id
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${selectedSourceId === p.id
                               ? 'bg-white/10 text-white font-semibold'
                               : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                          }`}
+                            }`}
                         >
                           <div>
                             <div className="font-medium text-white">{p.name}</div>
@@ -177,11 +176,10 @@ export function FreightPredictorModule() {
                     <button
                       key={dp.id}
                       onClick={() => setSelectedDestId(dp.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                        selectedDestId === dp.id
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${selectedDestId === dp.id
                           ? 'bg-white/10 text-white font-semibold'
                           : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                      }`}
+                        }`}
                     >
                       <div>
                         <div className="font-medium text-white flex items-center gap-1.5">
@@ -211,12 +209,12 @@ export function FreightPredictorModule() {
             <div className="text-white font-semibold mt-0.5">Panamax (75,000 MT)</div>
           </div>
           <div className="p-2 rounded-lg bg-zinc-900/50 border border-white/5">
-            <span className="text-zinc-500 text-[10px] uppercase">Benchmark Rate</span>
-            <div className="text-white font-semibold mt-0.5">${routeData.currentBenchmarkRate}/MT</div>
+            <span className="text-zinc-500 text-[10px] uppercase">Spot Benchmark (BPI 1,501)</span>
+            <div className="text-emerald-400 font-semibold mt-0.5">${routeData.currentBenchmarkRate}/MT</div>
           </div>
           <div className="p-2 rounded-lg bg-zinc-900/50 border border-white/5">
-            <span className="text-zinc-500 text-[10px] uppercase">AI Projected Target</span>
-            <div className="text-purple-400 font-semibold mt-0.5">${routeData.currentPanamaxRate}/MT</div>
+            <span className="text-zinc-500 text-[10px] uppercase">Panamax AI Target (BPI 1,420)</span>
+            <div className="text-white font-semibold mt-0.5">${routeData.currentPanamaxRate}/MT</div>
           </div>
         </div>
 
@@ -233,6 +231,8 @@ export function FreightPredictorModule() {
         percentChangeBenchmark={routeData.percentChangeBenchmark}
         currentPanamaxRate={routeData.currentPanamaxRate}
         currentBenchmarkRate={routeData.currentBenchmarkRate}
+        currentBpiPoints={routeData.currentBpiPoints}
+        targetBpiPoints={routeData.targetBpiPoints}
       />
 
     </div>

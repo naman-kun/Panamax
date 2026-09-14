@@ -2,7 +2,11 @@ import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Compass, ShieldCheck } from 'lucide-react';
 
-export function Footer() {
+interface FooterProps {
+  onOpenDashboard?: () => void;
+}
+
+export function Footer({ onOpenDashboard }: FooterProps) {
   return (
     <footer className="border-t border-white/10 bg-black px-4 sm:px-6 lg:px-8 py-12 text-zinc-400 text-xs">
       <div className="mx-auto max-w-6xl">
@@ -31,15 +35,24 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="#interactive-forecast" className="hover:text-white transition-colors">
-              Rate Chart
-            </a>
-            <a href="#features" className="hover:text-white transition-colors">
-              Decision Engine
-            </a>
-            <a href="#see-what-panamax-can-do" className="hover:text-white transition-colors">
-              Capabilities
-            </a>
+            <button
+              onClick={onOpenDashboard}
+              className="hover:text-white transition-colors"
+            >
+              Interactive Dashboard
+            </button>
+            <button
+              onClick={onOpenDashboard}
+              className="hover:text-white transition-colors"
+            >
+              Vessel Optimizer
+            </button>
+            <button
+              onClick={onOpenDashboard}
+              className="hover:text-white transition-colors"
+            >
+              Risk Sentinel
+            </button>
             <a href="#" className="hover:text-white transition-colors">
               Security
             </a>

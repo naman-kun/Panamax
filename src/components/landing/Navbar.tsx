@@ -30,12 +30,29 @@ import {
 
 interface NavbarProps {
   onOpenDemo: () => void;
+  onOpenDashboard?: () => void;
+  visible?: boolean;
+  revealProgress?: number;
 }
 
-export function Navbar({ onOpenDemo }: NavbarProps) {
+export function Navbar({ onOpenDemo, onOpenDashboard, visible = true, revealProgress }: NavbarProps) {
+  const hasProgress = typeof revealProgress === 'number';
+  const opacity = hasProgress ? revealProgress : visible ? 1 : 0;
+  const translateY = hasProgress ? -100 * (1 - revealProgress) : visible ? 0 : -100;
+  const isPointerActive = hasProgress ? revealProgress >= 0.75 : visible;
+
   return (
     <TooltipProvider delayDuration={150}>
-      <header className="sticky top-0 z-50 w-full linear-navbar">
+      <header
+        id="landing-navbar"
+        style={{
+          transform: `translate3d(0, ${translateY}%, 0)`,
+          opacity: opacity,
+        }}
+        className={`fixed top-0 left-0 right-0 z-50 w-full linear-navbar will-change-transform ${
+          isPointerActive ? 'pointer-events-auto' : 'pointer-events-none'
+        } ${hasProgress ? '' : 'transition-all duration-1000 ease-out'}`}
+      >
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           
           {/* Brand Logo - Left */}
@@ -87,7 +104,7 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
                     Unified maritime intelligence platform built for bulk procurement officers & charterers.
                   </p>
                   <div className="grid gap-1.5 pt-1">
-                    <a href="#features" className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-colors group">
+                    <a href="#see-what-panamax-can-do" className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <Cpu className="h-4 w-4 text-zinc-400 group-hover:text-white mt-0.5" />
                       <div>
                         <div className="text-xs font-medium text-zinc-200 group-hover:text-white">Neural Rate Forecaster</div>
@@ -224,6 +241,17 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
 
             <Separator orientation="vertical" className="h-3 w-px bg-white/10" />
 
+            {/* Dashboard Nav Button */}
+            <button
+              onClick={onOpenDashboard || onOpenDemo}
+              className="nav-header-btn px-2.5 py-1.5 rounded-md text-xs font-semibold text-white hover:bg-white/10 border border-white/20 flex items-center gap-1.5 transition-all"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              <span>Dashboard</span>
+            </button>
+
+            <Separator orientation="vertical" className="h-3 w-px bg-white/10" />
+
             {/* 6. Docs with Tooltip */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -252,7 +280,7 @@ export function Navbar({ onOpenDemo }: NavbarProps) {
 
             {/* Sign up / Launch button (Linear White Pill) */}
             <button
-              onClick={onOpenDemo}
+              onClick={onOpenDashboard || onOpenDemo}
               className="rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-black transition-all hover:bg-neutral-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] active:scale-95"
             >
               Launch Platform

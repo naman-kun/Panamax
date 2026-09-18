@@ -15,19 +15,59 @@ import {
   ThumbsUp,
   ThumbsDown,
 } from 'lucide-react';
-import { PortInfo, DestinationPortInfo, VesselClassSpec } from '@/lib/simulationEngine';
+import { PortInfo, DestinationPortInfo, VesselClassSpec, VesselClassId } from '@/lib/simulationEngine';
+import { fetchAgentForecast, ForecastRequest } from '@/lib/api';
 
 interface NotionAISandboxProps {
   source: PortInfo;
   destination: DestinationPortInfo;
   vesselClass: VesselClassSpec;
+  /** Live parcel size from DashboardPage state (defaults to vessel typical cargo). */
+  cargoQuantityMT?: number;
 }
 
-export function NotionAISandbox({ source, destination, vesselClass }: NotionAISandboxProps) {
+/** Maps frontend VesselClassId -> backend canonical vessel_type (incl. BDI passthrough). */
+function toBackendVesselType(id: VesselClassId): string {
+  switch (id) {
+    case 'handysize':
+      return 'Handysize';
+    case 'supramax':
+      return 'Supramax';
+    case 'panamax':
+      return 'Panamax';
+    case 'capesize':
+      return 'Capesize';
+    default:
+      return 'Panamax';
+  }
+}
+
+/** Default target date = today + 14 days, formatted YYYY-MM-DD. */
+function defaultQueryDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 14);
+  return d.toISOString().slice(0, 10);
+}
+
+export function NotionAISandbox({ source, destination, vesselClass, cargoQuantityMT }: NotionAISandboxProps) {
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState('');
+  const [queryDate, setQueryDate] = useState<string>(defaultQueryDate());
+  const [error, setError] = useState<string | null>(null);
+
+  const effectiveWeight = cargoQuantityMT ?? vesselClass.typicalCargoMT;
+
+  const buildForecastRequest = (): ForecastRequest => ({
+    query_date: queryDate,
+    vessel_type: toBackendVesselType(vesselClass.id),
+    origin_port: source.name,
+    destination_port: destination.name,
+    country: source.country,
+    item: 'General Cargo',
+    weight: effectiveWeight,
+  });
 
   const promptTemplates = [
     {
@@ -64,15 +104,28 @@ export function NotionAISandbox({ source, destination, vesselClass }: NotionAISa
     },
   ];
 
-  const handleTrigger = (template: typeof promptTemplates[0]) => {
+  const handleTrigger = async (template: typeof promptTemplates[0]) => {
     setSelectedPrompt(template.label);
     setIsGenerating(true);
     setGeneratedContent([]);
+    setError(null);
 
-    setTimeout(() => {
+    try {
+      const response = await fetchAgentForecast(buildForecastRequest());
+      const lines = (response.report ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      setGeneratedContent(lines);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to reach the LangGraph agent backend. Is `npm run dev` running on port 8000?'
+      );
+    } finally {
       setIsGenerating(false);
-      setGeneratedContent(template.results);
-    }, 700);
+    }
   };
 
   return (
@@ -93,12 +146,7 @@ export function NotionAISandbox({ source, destination, vesselClass }: NotionAISa
                 handleTrigger({
                   id: 'custom',
                   label: customInput,
-                  results: [
-                    `AI Neural assessment for: "${customInput}"`,
-                    `Current corridor: ${source.name} → ${destination.name} utilizing ${vesselClass.name}.`,
-                    `Freight projections show stabilized Baltic dry index momentum with optimal entry trough in next 2-3 weeks.`,
-                    `Recommended operational step: Issue prompt chartering tender with fixed bunker price adjustment formula.`,
-                  ],
+                  results: [],
                 });
                 setCustomInput('');
               }
@@ -111,12 +159,7 @@ export function NotionAISandbox({ source, destination, vesselClass }: NotionAISa
                 handleTrigger({
                   id: 'custom',
                   label: customInput,
-                  results: [
-                    `AI Neural assessment for: "${customInput}"`,
-                    `Current corridor: ${source.name} → ${destination.name} utilizing ${vesselClass.name}.`,
-                    `Freight projections show stabilized Baltic dry index momentum with optimal entry trough in next 2-3 weeks.`,
-                    `Recommended operational step: Issue prompt chartering tender with fixed bunker price adjustment formula.`,
-                  ],
+                  results: [],
                 });
                 setCustomInput('');
               }
@@ -151,11 +194,48 @@ export function NotionAISandbox({ source, destination, vesselClass }: NotionAISa
 
       </div>
 
+      {/* Live-request context: target date + parcel size sent to FastAPI */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-zinc-400">
+        <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-950 border border-white/10">
+          <span className="text-zinc-500">Target date</span>
+          <input
+            type="date"
+            value={queryDate}
+            onChange={(e) => setQueryDate(e.target.value)}
+            className="bg-transparent text-white focus:outline-none"
+          />
+        </label>
+        <span className="px-2 py-1 rounded-lg bg-zinc-950 border border-white/10">
+          {effectiveWeight.toLocaleString()} MT · {toBackendVesselType(vesselClass.id)}
+        </span>
+        <span className="px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300">
+          Live FastAPI · port 8000
+        </span>
+      </div>
+
       {/* Generating Status Animation */}
       {isGenerating && (
         <div className="p-4 rounded-xl bg-zinc-950 border border-white/10 flex items-center gap-3 text-xs text-zinc-400">
           <Sparkles className="h-4 w-4 text-white animate-spin" />
-          <span>Notion AI is generating maritime intelligence memo...</span>
+          <span>LangGraph agent compiling freight forecast...</span>
+        </div>
+      )}
+
+      {/* Backend Error State */}
+      {error && (
+        <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center gap-3 text-xs text-red-300">
+          <ShieldAlert className="h-4 w-4 text-red-400 animate-pulse shrink-0" />
+          <div className="space-y-0.5 min-w-0">
+            <span className="font-semibold text-red-300 block">LangGraph Agent Backend Error</span>
+            <span className="text-red-400/80 block break-words">{error}</span>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto shrink-0 text-red-400/70 hover:text-white transition-colors"
+            aria-label="Dismiss error"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 

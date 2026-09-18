@@ -24,8 +24,8 @@ interface DashboardPageProps {
 
 export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
   const [activePage, setActivePage] = useState<DashboardPageId>('pillar-a');
-  const [selectedSourceId, setSelectedSourceId] = useState<string>('id-taboneo');
-  const [selectedDestId, setSelectedDestId] = useState<string>('in-paradip');
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('in-kolkata');
+  const [selectedDestId, setSelectedDestId] = useState<string>('eu-gdansk');
   const [selectedVesselClassId, setSelectedVesselClassId] = useState<VesselClassId>('panamax');
   const [cargoQuantityMT, setCargoQuantityMT] = useState<number>(75000);
 
@@ -220,6 +220,7 @@ export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
                 source={source}
                 destination={destination}
                 vesselClass={vesselClass}
+                cargoQuantityMT={cargoQuantityMT}
               />
             )}
 

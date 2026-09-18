@@ -281,7 +281,7 @@ export function NotionPageHeader({
             <div className="space-y-1">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
                 <Anchor className="h-3 w-3 text-white" />
-                <span>East Coast Discharge Port (7 SIH Terminals)</span>
+                <span>Destination Discharge Port (Baltic / Northern Europe)</span>
               </label>
 
               <Popover>
@@ -301,7 +301,7 @@ export function NotionPageHeader({
                 </PopoverTrigger>
                 <PopoverContent className="w-80 sm:w-96 p-2 bg-[#202020] border-white/20 text-xs max-h-96 overflow-y-auto shadow-2xl" align="start">
                   <div className="text-[10px] font-semibold text-zinc-500 px-3 py-1 uppercase tracking-wider">
-                    7 Official SIH East Coast India Ports
+                    Baltic / Northern European Destination Ports
                   </div>
                   <div className="space-y-1 pt-1">
                     {DESTINATION_INDIAN_PORTS.map((dp) => (

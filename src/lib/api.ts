@@ -5,7 +5,13 @@
  * touches raw fetch() calls or knows the backend URL.
  */
 
-const BACKEND_URL = "http://localhost:8000";
+// Vite dev default; override per-environment with VITE_BACKEND_URL in .env.local.
+const BACKEND_URL =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env
+    ?.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+// Long LangGraph runs (ML forecast + market search) can take a while.
+const DEFAULT_TIMEOUT_MS = 120_000;
 
 // ---------------------------------------------------------------------------
 // Request / Response types (mirrors backend Pydantic schemas)
@@ -50,12 +56,35 @@ export async function fetchAgentForecast(
   req: ForecastRequest,
   signal?: AbortSignal
 ): Promise<ForecastResponse> {
-  const response = await fetch(`${BACKEND_URL}/forecast`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-    signal,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  // Allow caller abort to propagate while keeping our own timeout.
+  const onCallerAbort = () => controller.abort();
+  signal?.addEventListener("abort", onCallerAbort, { once: true });
+
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/forecast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(
+        signal?.aborted
+          ? "Forecast request was cancelled."
+          : `Forecast timed out after ${DEFAULT_TIMEOUT_MS / 1000}s — the agent may still be running. Try again.`
+      );
+    }
+    throw new Error(
+      `Cannot reach the freight backend at ${BACKEND_URL}. Is \`npm run dev\` running both Vite and uvicorn?`
+    );
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener("abort", onCallerAbort);
+  }
 
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -81,3 +110,4 @@ export async function checkBackendHealth(): Promise<boolean> {
     return false;
   }
 }
+

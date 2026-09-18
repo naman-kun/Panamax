@@ -16,13 +16,13 @@ from langchain_community.tools import DuckDuckGoSearchResults
 from mlforecast import MLForecast
 
 try:
-    from config import AUTHORIZED_NEWS_DOMAINS, MODEL_DIR_ENV
+    from config import AUTHORIZED_NEWS_DOMAINS, MODEL_DIR_ENV, DATA_DIR_ENV, VITE_ORIGINS
 except ImportError:
-    from src.config import AUTHORIZED_NEWS_DOMAINS, MODEL_DIR_ENV
+    from src.config import AUTHORIZED_NEWS_DOMAINS, MODEL_DIR_ENV, DATA_DIR_ENV, VITE_ORIGINS
 
 # --- Configuration ---
 MODEL_DIR = os.path.expanduser(os.getenv("MODEL_DIR", MODEL_DIR_ENV))
-DATA_DIR = os.path.expanduser(os.getenv("DATA_DIR", "~/freight_forecast/data"))
+DATA_DIR = os.path.expanduser(os.getenv("DATA_DIR", DATA_DIR_ENV))
 
 # Load valid categories (Capesize, Panamax, etc.) for agent validation
 try:
@@ -166,10 +166,38 @@ def explain_prediction(vessel_type: str) -> str:
         return f"Explanation execution failed: {str(e)}"
 
 
-# Standard Web Search tool for LangGraph
-# Fetches live macro-economic data (e.g., "China iron ore demand", "Baltic Exchange recent news")
-search_market_news = DuckDuckGoSearchResults(
+# Whitelisted web-search tool for LangGraph.
+# WHY: DuckDuckGoSearchResults itself cannot restrict domains, so we wrap it:
+# the query sent upstream is suffixed with `site:` filters for every domain in
+# AUTHORIZED_NEWS_DOMAINS, and the returned text is annotated with the
+# whitelist so the agent cites only approved trade-press sources.
+_base_market_search = DuckDuckGoSearchResults(
     name="search_market_news",
-    description="Search for recent macro-economic news, Baltic Exchange trends, or global shipping market updates. Input should be a search query string.",
-    handle_tool_error=True
+    description=(
+        "Search for recent macro-economic news, Baltic Exchange trends, or global "
+        "shipping market updates. Input should be a search query string. "
+        "Results are restricted to whitelisted maritime trade-press domains: "
+        + ", ".join(AUTHORIZED_NEWS_DOMAINS)
+        + "."
+    ),
+    handle_tool_error=True,
 )
+
+
+@tool
+def search_market_news(query: str) -> str:
+    """Search whitelisted maritime sources for market context.
+
+    Args:
+        query: Free-text search query (e.g. "Baltic Panamax index bunker prices").
+    """
+    site_filter = " OR ".join(f"site:{d}" for d in AUTHORIZED_NEWS_DOMAINS)
+    scoped_query = f"({query}) ({site_filter})"
+    try:
+        result = _base_market_search.invoke(scoped_query)
+    except Exception as exc:
+        return f"Market news search failed: {exc}"
+    return (
+        f"[Sources restricted to: {', '.join(AUTHORIZED_NEWS_DOMAINS)}]\n"
+        f"Query: {query}\n{result}"
+    )

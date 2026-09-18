@@ -185,7 +185,7 @@ export function RiskSentinelPillar({ source, destination, vesselClass }: RiskSen
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <Anchor className="h-4 w-4 text-white" />
-            <h3 className="text-sm font-bold text-white">East Coast India 7 Official SIH Port Berth Queues</h3>
+            <h3 className="text-sm font-bold text-white">Baltic Destination Port Berth Queues</h3>
           </div>
           <Badge variant="outline" className="text-[10px] font-mono border-white/15 text-zinc-400">
             Live Berth Telemetry

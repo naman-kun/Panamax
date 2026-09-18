@@ -12,7 +12,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 
 # Load .env before importing agent (agent reads GOOGLE_API_KEY on import)
@@ -22,6 +22,11 @@ try:
     from agent import build_app, format_message_content
 except ImportError:
     from src.agent import build_app, format_message_content
+
+try:
+    from config import VITE_ORIGINS
+except ImportError:
+    from src.config import VITE_ORIGINS
 
 # ---------------------------------------------------------------------------
 # Startup / Shutdown — build the LangGraph agent once and reuse it
@@ -54,10 +59,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=VITE_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -103,6 +105,32 @@ class ForecastRequest(BaseModel):
         description="Shipment quantity in metric tonnes.",
         examples=[75000],
     )
+
+    @field_validator("query_date")
+    @classmethod
+    def _validate_query_date(cls, v: str) -> str:
+        from datetime import datetime
+
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("query_date must use YYYY-MM-DD format.")
+        return v
+
+    @field_validator("weight")
+    @classmethod
+    def _validate_weight(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("weight must be greater than 0 metric tonnes.")
+        return v
+
+    @field_validator("vessel_type")
+    @classmethod
+    def _validate_vessel_type(cls, v: str) -> str:
+        allowed = {"panamax", "capesize", "supramax", "handysize", "bdi"}
+        if v.strip().lower() not in allowed:
+            raise ValueError(f"vessel_type must be one of: {sorted(allowed)}.")
+        return v
 
 
 class ForecastResponse(BaseModel):
@@ -204,3 +232,4 @@ async def forecast(req: ForecastRequest):
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+

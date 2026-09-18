@@ -197,6 +197,7 @@ export interface DestinationPortInfo {
   maxBeam: number;      // meters
   maxDraft: number;     // meters
   dischargeRateTPD: number; // metric tonnes/day handling capacity
+  lighterageCostUSDPerMT: number; // lighterage/debarkation surcharge when draft exceeded
   berthQueueDaysAvg: number;
   isIcePort: boolean;           // requires ice class vessel in winter
   icebreakingFeeUSD: number;    // seasonal icebreaking fee USD/call
@@ -205,7 +206,9 @@ export interface DestinationPortInfo {
 }
 
 // Baltic / Northern European destination ports for the India → Baltic corridor
-export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
+// NOTE: legacy name DESTINATION_INDIAN_PORTS is kept as an alias for
+// backwards compatibility; prefer DESTINATION_BALTIC_PORTS in new code.
+export const DESTINATION_BALTIC_PORTS: DestinationPortInfo[] = [
   {
     id: 'eu-gdansk',
     name: 'Port of Gdańsk (DCT)',
@@ -217,6 +220,7 @@ export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
     maxBeam: 60.0,
     maxDraft: 17.0,
     dischargeRateTPD: 55000,
+    lighterageCostUSDPerMT: 14,
     berthQueueDaysAvg: 1.4,
     isIcePort: true,
     icebreakingFeeUSD: 4200,
@@ -234,6 +238,7 @@ export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
     maxBeam: 45.0,
     maxDraft: 14.0,
     dischargeRateTPD: 38000,
+    lighterageCostUSDPerMT: 16,
     berthQueueDaysAvg: 1.2,
     isIcePort: true,
     icebreakingFeeUSD: 3800,
@@ -251,6 +256,7 @@ export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
     maxBeam: 48.0,
     maxDraft: 14.5,
     dischargeRateTPD: 32000,
+    lighterageCostUSDPerMT: 15,
     berthQueueDaysAvg: 1.0,
     isIcePort: true,
     icebreakingFeeUSD: 3500,
@@ -268,6 +274,7 @@ export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
     maxBeam: 40.0,
     maxDraft: 12.5,
     dischargeRateTPD: 26000,
+    lighterageCostUSDPerMT: 18,
     berthQueueDaysAvg: 0.8,
     isIcePort: true,
     icebreakingFeeUSD: 5500,
@@ -285,10 +292,18 @@ export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] = [
     maxBeam: 58.0,
     maxDraft: 15.5,
     dischargeRateTPD: 65000,
+    lighterageCostUSDPerMT: 12,
     berthQueueDaysAvg: 2.1,
     isIcePort: false,
     icebreakingFeeUSD: 0,
     railConnectivityScore: 9.8,
+    isSIHCorePort: true,
+  },
+];
+
+/** Legacy alias — DESTINATION_INDIAN_PORTS actually lists Baltic ports. */
+export const DESTINATION_INDIAN_PORTS: DestinationPortInfo[] =
+  DESTINATION_BALTIC_PORTS;
 
 // StockItem data model matching the Infragistics Financial Chart
 export class StockItem {

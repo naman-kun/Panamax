@@ -29,8 +29,8 @@ import {
 import { FinancialChart } from '../FinancialChart';
 
 export function FreightPredictorModule() {
-  const [selectedSourceId, setSelectedSourceId] = useState<string>('id-taboneo');
-  const [selectedDestId, setSelectedDestId] = useState<string>('in-paradip');
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('in-kolkata');
+  const [selectedDestId, setSelectedDestId] = useState<string>('eu-gdansk');
   const [timeframe, setTimeframe] = useState<'1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL'>('1Y');
   const [yAxisMode, setYAxisMode] = useState<FinancialYAxisMode>('PercentChange');
 

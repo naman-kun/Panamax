@@ -9,6 +9,30 @@
 
 ---
 
+## Hybrid Intelligence Architecture (live-first, offline-resilient)
+
+Panamax deliberately fuses **two complementary model families** so every dashboard pillar stays honest whether the
+backend is reachable or not — no empty charts, no stale "simulated" labels.
+
+### Layer A — Deterministic ML forecasting pipeline (FastAPI :8000)
+- **Engine:** LightGBM (via `mlforecast`) trained on Baltic historical CSVs (BDI / Capesize / Panamax / Supramax / Handysize).
+- **Explainability:** SHAP — feature importances cited as "Key Drivers".
+- **Endpoints:** `GET /api/history` · `GET /api/forecast-next` · `GET /api/drivers` · `GET /api/meta` (each date-anchored to the real `latest_ds`, never wall-clock).
+
+### Layer B — Agentic intelligence (LangGraph ReAct + Gemini [`gemini-2.5-flash`](https://ai.google.dev/gemini-api))
+- **Orchestrator:** `LangGraph` `StateGraph` / `ToolNode` ReAct agent (`backend/src/agent.py`).
+- **Bound tools:** `predict_freight_index` (LightGBM) · `explain_prediction` (SHAP) · `search_market_news` (whitelisted domains only).
+- **LLM:** Google Gemini `gemini-2.5-flash` (env `GEMINI_MODEL`; key via `GOOGLE_API_KEY` in `backend/.env`).
+
+### How the two layers swap
+Every pillar hook (`useLiveRouteSeries`, `useModelDrivers` in `src/hooks/`) calls the **live endpoint first** and
+renders backend data the moment it arrives; a synthetic `simulationEngine` series — date-anchored to the same
+`2025-03-31` `latest_ds` — serves as the instant offline fallback, keeping CI bands, corridor shape and labels
+consistent across both paths. The exact division of "what each page asks the forecasting layer for" is documented
+per sub-page in [`src/pages/dashboard/`](src/pages/dashboard/) (see the Route → Data table below).
+
+---
+
 ## Overview
 
 Indian conglomerates (power, steel, refineries) and global commodity trading houses import millions of tonnes of dry bulk commodities (thermal coal, coking coal, iron ore, crude oil). They face massive unhedged exposure to ocean freight rate volatility:

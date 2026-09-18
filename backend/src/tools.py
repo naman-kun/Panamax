@@ -64,67 +64,24 @@ def predict_freight_index(vessel_type: str, target_date: str) -> str:
     """
     Predicts the Baltic Exchange index price for a specific vessel class and future date.
     Use this tool when a user asks for a freight forecast, rate prediction, or future index value.
-    
+
     Args:
         vessel_type: Must be one of: 'Capesize', 'Panamax', 'Supramax', 'Handysize', 'BDI'.
         target_date: The future date to predict (format: YYYY-MM-DD).
     """
-    vessel_key = vessel_type.strip().lower()
-    if vessel_key not in CATEGORY_LOOKUP:
-        return f"Error: Invalid vessel type '{vessel_type}'. Must be one of {VALID_CATEGORIES}."
-    canonical_type = CATEGORY_LOOKUP[vessel_key]
-        
     try:
-        target_dt = pd.to_datetime(target_date)
-    except Exception:
-        return f"Error: Invalid date format for '{target_date}'. Please use YYYY-MM-DD format."
-        
-    try:
-        # Load the fitted MLForecast model wrapper
-        fcst = MLForecast.load(os.path.join(MODEL_DIR, "mlforecast_model"))
-        
-        # Get latest known data to calculate horizon (h) and forward-fill financial features
-        latest_row = _get_latest_data(canonical_type)
-        latest_dt = latest_row["ds"]
-        
-        h = (target_dt - latest_dt).days
-        if h <= 0:
-            return (
-                f"Error: target_date {target_date} must be in the future (after latest known date "
-                f"{latest_dt.strftime('%Y-%m-%d')})."
-            )
-            
-        # Build future dataframe (X_df) for the continuous prediction horizon
-        future_dates = pd.date_range(start=latest_dt + pd.Timedelta(days=1), periods=h, freq="D")
-        X_df = pd.DataFrame({
-            "unique_id": canonical_type,
-            "ds": future_dates,
-            "Open": float(latest_row["Open"]), 
-            "High": float(latest_row["High"]),
-            "Low": float(latest_row["Low"]),
-            "month_sin": np.sin(2 * np.pi * future_dates.month / 12),
-            "month_cos": np.cos(2 * np.pi * future_dates.month / 12),
-            "dow_sin": np.sin(2 * np.pi * future_dates.dayofweek / 7),
-            "dow_cos": np.cos(2 * np.pi * future_dates.dayofweek / 7)
-        })
-        
-        # Run prediction restricted to canonical_type via ids argument
-        preds = fcst.predict(h=h, X_df=X_df, ids=[canonical_type])
-        
-        # Extract the specific target date prediction
-        target_pred = preds[preds["ds"] == target_dt]
-        if target_pred.empty:
-            return f"Could not generate prediction for {target_date}."
-            
-        predicted_value = float(target_pred["LGBMRegressor"].values[0])
-        
-        return (
-            f"Forecast Success: The predicted {canonical_type} index for {target_date} "
-            f"is {predicted_value:.2f} Index Points (horizon: {h} days ahead of latest historical date {latest_dt.strftime('%Y-%m-%d')})."
-        )
-                
+        try:
+            from forecasting import predict_value as _predict_value
+        except ImportError:
+            from src.forecasting import predict_value as _predict_value
+        r = _predict_value(vessel_type, target_date)
+        return (f"Forecast Success: The predicted {r['vessel_type']} index for {target_date} "
+                f"is {r['predicted_index']:.2f} Index Points (horizon: {r['horizon_days']} days ahead of latest historical date {r['latest_ds']}).")
+    except ValueError as exc:
+        return f"Error: {exc}"
     except Exception as e:
         return f"Prediction execution failed: {str(e)}"
+
 
 
 @tool
@@ -147,7 +104,7 @@ def explain_prediction(vessel_type: str) -> str:
         with open(os.path.join(MODEL_DIR, "feature_columns.json"), "r") as f:
             feature_columns = json.load(f)
             
-        top_feature_str = ""
+        top_feature_str = " (shared forecasting.shap_drivers core)"
         booster = getattr(explainer.model, "original_model", None)
         if booster is not None and hasattr(booster, "feature_importance"):
             importances = booster.feature_importance(importance_type="gain")

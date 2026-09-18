@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,7 +16,7 @@ import {
   ThumbsDown,
 } from 'lucide-react';
 import { PortInfo, DestinationPortInfo, VesselClassSpec, VesselClassId } from '@/lib/simulationEngine';
-import { fetchAgentForecast, ForecastRequest } from '@/lib/api';
+import { fetchAgentForecast, fetchBackendMeta, ForecastRequest } from '@/lib/api';
 
 interface NotionAISandboxProps {
   source: PortInfo;
@@ -42,10 +42,16 @@ function toBackendVesselType(id: VesselClassId): string {
   }
 }
 
-/** Default target date = today + 14 days, formatted YYYY-MM-DD. */
-function defaultQueryDate(): string {
+/** Fallback target date (offline): today + 14 days. Live default comes from backend latest_ds + 14. */
+function fallbackQueryDate(): string {
   const d = new Date();
   d.setDate(d.getDate() + 14);
+  return d.toISOString().slice(0, 10);
+}
+
+function plusDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
@@ -54,7 +60,21 @@ export function NotionAISandbox({ source, destination, vesselClass, cargoQuantit
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState('');
-  const [queryDate, setQueryDate] = useState<string>(defaultQueryDate());
+  const [queryDate, setQueryDate] = useState<string>(fallbackQueryDate());
+  const [dateAnchored, setDateAnchored] = useState(false);
+  useEffect(() => {
+    // Anchor the default target to backend latest_ds + 14 so the horizon can
+    // never exceed the 180-day cap (CSVs end 2025-03; wall-clock today 400s).
+    let cancelled = false;
+    fetchBackendMeta().then((m) => {
+      if (cancelled || dateAnchored) return;
+      const key = toBackendVesselType(vesselClass.id);
+      const latest = m.latest[key]?.latest_ds ?? m.latest["Panamax"]?.latest_ds;
+      if (latest) { setQueryDate(plusDays(latest, 14)); setDateAnchored(true); }
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vesselClass.id]);
   const [error, setError] = useState<string | null>(null);
 
   const effectiveWeight = cargoQuantityMT ?? vesselClass.typicalCargoMT;

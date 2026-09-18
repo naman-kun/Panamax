@@ -27,6 +27,10 @@ try:
     from config import VITE_ORIGINS
 except ImportError:
     from src.config import VITE_ORIGINS
+try:
+    import forecasting as forecasting
+except ImportError:
+    from src import forecasting
 
 # ---------------------------------------------------------------------------
 # Startup / Shutdown — build the LangGraph agent once and reuse it
@@ -40,6 +44,11 @@ async def lifespan(app: FastAPI):
     try:
         _agent_app = build_app()
         print("✅ LangGraph freight agent initialised.")
+        try:
+            import forecasting as _fc
+        except ImportError:
+            from src import forecasting as _fc
+        print(f"   MODEL_DIR={_fc.MODEL_DIR} DATA_DIR={_fc.DATA_DIR}")
     except Exception as exc:
         print(f"⚠️  Agent initialisation failed: {exc}")
         _agent_app = None
@@ -191,6 +200,66 @@ async def health():
         "status": "ok",
         "agent_ready": _agent_app is not None,
     }
+
+
+
+# ---------------------------------------------------------------------------
+# Structured model-data endpoints (charts + all sub-pages use these)
+# ---------------------------------------------------------------------------
+class ForecastSeriesRequest(BaseModel):
+    vessel_type: str = "Panamax"
+    start_date: str = Field(..., examples=["2025-04-01"])
+    end_date: str = Field(..., examples=["2025-04-30"])
+
+
+@app.get("/api/meta", summary="Model metadata + corridor lists")
+async def api_meta():
+    try:
+        return forecasting.meta()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/history", summary="Real Baltic OHLC history")
+async def api_history(vessel_type: str = "Panamax", limit: int = 365):
+    try:
+        return forecasting.get_history(vessel_type, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/forecast-next", summary="Date-anchored LightGBM forecast (latest_ds + days)")
+async def api_forecast_next(vessel_type: str = "Panamax", days: int = 30):
+    """Preferred by all sub-pages: server anchors the window to latest_ds so
+    callers never need wall-clock math (avoids the 180-day cap 400s)."""
+    try:
+        return forecasting.forecast_next(vessel_type, days)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/forecast-series", summary="LightGBM daily forecast range")
+async def api_forecast_series(req: ForecastSeriesRequest):
+    try:
+        return forecasting.forecast_series(req.vessel_type, req.start_date, req.end_date)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/drivers", summary="SHAP feature drivers")
+async def api_drivers(vessel_type: str = "Panamax"):
+    try:
+        return forecasting.shap_drivers(vessel_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/forecast", response_model=ForecastResponse, summary="Run freight forecast agent")

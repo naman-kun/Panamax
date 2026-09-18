@@ -1,29 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   SOURCE_EXPORT_PORTS,
   DESTINATION_INDIAN_PORTS,
   VESSEL_CLASSES,
   VesselClassId,
-  generateRouteFinancialData,
-  FinancialYAxisMode,
 } from '@/lib/simulationEngine';
 import { NotionSidebar, DashboardPageId } from '@/components/dashboard/NotionSidebar';
 import { NotionTopBar, NotionFontStyle } from '@/components/dashboard/NotionTopBar';
 import { NotionPageHeader } from '@/components/dashboard/NotionPageHeader';
-import { MarketForecastPillar } from '@/components/dashboard/MarketForecastPillar';
-import { VesselOptimizerPillar } from '@/components/dashboard/VesselOptimizerPillar';
-import { IdleFleetPillar } from '@/components/dashboard/IdleFleetPillar';
-import { RiskSentinelPillar } from '@/components/dashboard/RiskSentinelPillar';
-import { TradingViewChartTerminal } from '@/components/dashboard/TradingViewChartTerminal';
-import { NotionFixtureDatabase } from '@/components/dashboard/NotionFixtureDatabase';
-import { NotionAISandbox } from '@/components/dashboard/NotionAISandbox';
+import { PillarAPage } from './dashboard/PillarAPage';
+import { PillarBPage } from './dashboard/PillarBPage';
+import { PillarCPage } from './dashboard/PillarCPage';
+import { PillarDPage } from './dashboard/PillarDPage';
+import { TradingViewPage } from './dashboard/TradingViewPage';
+import { FixturesPage } from './dashboard/FixturesPage';
+import { AISandboxPage } from './dashboard/AISandboxPage';
+import { hashForRoute, routeIdFromHash } from './dashboard/routes';
 
 interface DashboardPageProps {
   onBackToLanding: () => void;
 }
 
 export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
-  const [activePage, setActivePage] = useState<DashboardPageId>('pillar-a');
+  const [activePage, setActivePage] = useState<DashboardPageId>(() => routeIdFromHash(typeof window !== 'undefined' ? window.location.hash : ''));
   const [selectedSourceId, setSelectedSourceId] = useState<string>('in-kolkata');
   const [selectedDestId, setSelectedDestId] = useState<string>('eu-gdansk');
   const [selectedVesselClassId, setSelectedVesselClassId] = useState<VesselClassId>('panamax');
@@ -45,6 +44,14 @@ export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
     'ai-sandbox': '✨',
   });
 
+  useEffect(() => {
+    const sync = () => setActivePage(routeIdFromHash(window.location.hash));
+    window.addEventListener('hashchange', sync);
+    if (!window.location.hash.startsWith('#dashboard/')) window.location.hash = hashForRoute(activePage);
+    return () => window.removeEventListener('hashchange', sync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const source = useMemo(() => {
     return SOURCE_EXPORT_PORTS.find((p) => p.id === selectedSourceId) || SOURCE_EXPORT_PORTS[0];
   }, [selectedSourceId]);
@@ -57,12 +64,7 @@ export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
     return VESSEL_CLASSES[selectedVesselClassId] || VESSEL_CLASSES.panamax;
   }, [selectedVesselClassId]);
 
-  // Route financial data for full TradingView mode
-  const [tvTimeframe, setTvTimeframe] = useState<'1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL'>('1Y');
-  const [tvYAxisMode, setTvYAxisMode] = useState<FinancialYAxisMode>('PercentChange');
-  const tvRouteData = useMemo(() => {
-    return generateRouteFinancialData(source.id, destination.id, tvTimeframe, vesselClass.id, tvYAxisMode);
-  }, [source.id, destination.id, tvTimeframe, vesselClass.id, tvYAxisMode]);
+  // TradingView series state now lives in its sub-page (live backend series).
 
   const pageMeta: Record<DashboardPageId, { title: string; subtitle: string }> = {
     'pillar-a': {
@@ -107,7 +109,7 @@ export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
       {/* 1. Left Notion Collapsible Sidebar */}
       <NotionSidebar
         activePage={activePage}
-        onSelectPage={setActivePage}
+        onSelectPage={(pageId) => { window.location.hash = hashForRoute(pageId); setActivePage(pageId); }}
         isOpen={sidebarOpen}
         onToggleOpen={() => setSidebarOpen(!sidebarOpen)}
       />
@@ -154,76 +156,30 @@ export function DashboardPage({ onBackToLanding }: DashboardPageProps) {
             }}
           />
 
-          {/* Dynamic Page Content Section */}
+          {/* Dynamic Sub-Page Content (each route is a separate sub-page) */}
           <div className={`mx-auto px-4 sm:px-8 mt-6 ${isFullWidth ? 'max-w-full' : 'max-w-6xl'}`}>
-            
             {activePage === 'pillar-a' && (
-              <MarketForecastPillar
-                source={source}
-                destination={destination}
-                vesselClass={vesselClass}
-                cargoQuantityMT={cargoQuantityMT}
-              />
+              <PillarAPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
             )}
-
             {activePage === 'pillar-b' && (
-              <VesselOptimizerPillar
-                source={source}
-                destination={destination}
-                activeVesselClass={vesselClass}
-                onSelectVesselClass={(vc) => {
-                  setSelectedVesselClassId(vc.id);
-                  setCargoQuantityMT(vc.typicalCargoMT);
-                }}
-              />
+              <PillarBPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT}
+                onSelectVesselClass={(vc) => { setSelectedVesselClassId(vc.id); setCargoQuantityMT(vc.typicalCargoMT); }} />
             )}
-
             {activePage === 'pillar-c' && (
-              <IdleFleetPillar
-                destination={destination}
-                vesselClass={vesselClass}
-              />
+              <PillarCPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
             )}
-
             {activePage === 'pillar-d' && (
-              <RiskSentinelPillar
-                source={source}
-                destination={destination}
-                vesselClass={vesselClass}
-              />
+              <PillarDPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
             )}
-
             {activePage === 'tradingview' && (
-              <TradingViewChartTerminal
-                source={source}
-                destination={destination}
-                vesselClass={vesselClass}
-                panamaxData={tvRouteData.panamaxForecast}
-                benchmarkData={tvRouteData.marketBenchmark}
-                currentPanamaxRate={tvRouteData.currentPanamaxRate}
-                currentBenchmarkRate={tvRouteData.currentBenchmarkRate}
-                percentChangePanamax={tvRouteData.percentChangePanamax}
-                percentChangeBenchmark={tvRouteData.percentChangeBenchmark}
-                timeframe={tvTimeframe}
-                onTimeframeChange={setTvTimeframe}
-                yAxisMode={tvYAxisMode}
-                onYAxisModeChange={setTvYAxisMode}
-                currentBpiPoints={tvRouteData.currentBpiPoints}
-                targetBpiPoints={tvRouteData.targetBpiPoints}
-              />
+              <TradingViewPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
             )}
-
-            {activePage === 'fixtures' && <NotionFixtureDatabase />}
-
+            {activePage === 'fixtures' && (
+              <FixturesPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
+            )}
             {activePage === 'ai-sandbox' && (
-              <NotionAISandbox
-                source={source}
-                destination={destination}
-                vesselClass={vesselClass}
-                cargoQuantityMT={cargoQuantityMT}
-              />
+              <AISandboxPage source={source} destination={destination} vesselClass={vesselClass} cargoQuantityMT={cargoQuantityMT} />
             )}
-
           </div>
 
         </main>

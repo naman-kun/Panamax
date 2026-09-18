@@ -101,6 +101,85 @@ export async function fetchAgentForecast(
   return data;
 }
 
+export interface HistoryPoint { ds: string; index: number; open: number; high: number; low: number }
+export interface HistoryResponse { vessel_type: string; count: number; latest_ds: string; latest_index: number; points: HistoryPoint[] }
+export interface ForecastPoint { ds: string; index: number }
+export interface ForecastSeriesResponse { vessel_type: string; latest_ds: string; latest_index: number; points: ForecastPoint[]; target_index: number | null; horizon_days: number }
+export interface ModelDriver { feature: string; importance: number; weight: number }
+export interface DriversResponse { vessel_type: string; drivers: ModelDriver[]; narrative: string; feature_columns: string[] }
+export interface BackendMeta { vessel_types: string[]; latest: Record<string, { latest_ds?: string; latest_index?: number; rows?: number; error?: string }>; origins: string[]; destinations: string[]; news_domains: string[]; generated_at: string }
+
+// Request dedupe + short TTL cache.
+// WHY: every sub-page previously mounted its own hook instance (status strip +
+// page body = 2x history + 2x forecast + 2x drivers). Without sharing, one
+// navigation fired 6-9 concurrent MLForecast loads and wedged uvicorn.
+const jsonCache = new Map<string, { at: number; data: unknown }>();
+const inflight = new Map<string, Promise<unknown>>();
+const CACHE_TTL_MS = 60_000;
+
+function cacheGet<T>(key: string): T | null {
+  const hit = jsonCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CACHE_TTL_MS) { jsonCache.delete(key); return null; }
+  return hit.data as T;
+}
+
+export function clearApiCache(): void { jsonCache.clear(); }
+
+async function getJson<T>(path: string, timeoutMs = 30000): Promise<T> {
+  const cached = cacheGet<T>(path);
+  if (cached) return cached;
+  const ongoing = inflight.get(path) as Promise<T> | undefined;
+  if (ongoing) return ongoing;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const job = (async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}${path}`, { signal: controller.signal });
+      if (!res.ok) {
+        let detail = `HTTP ${res.status} for ${path}`;
+        try { const e = await res.json(); detail = (e as { detail?: string }).detail ?? detail; } catch { /* keep status */ }
+        throw new Error(detail);
+      }
+      const data = (await res.json()) as T;
+      jsonCache.set(path, { at: Date.now(), data });
+      return data;
+    } finally { clearTimeout(timeout); inflight.delete(path); }
+  })();
+  inflight.set(path, job);
+  return job;
+}
+
+export async function fetchBackendMeta(): Promise<BackendMeta> { return getJson<BackendMeta>("/api/meta"); }
+export async function fetchHistory(vesselType: string, limit = 365): Promise<HistoryResponse> {
+  return getJson<HistoryResponse>(`/api/history?vessel_type=${encodeURIComponent(vesselType)}&limit=${limit}`);
+}
+export async function fetchDrivers(vesselType: string): Promise<DriversResponse> {
+  return getJson<DriversResponse>(`/api/drivers?vessel_type=${encodeURIComponent(vesselType)}`);
+}
+export async function fetchForecastSeries(vesselType: string, startDate: string, endDate: string): Promise<ForecastSeriesResponse> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/forecast-series`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vessel_type: vesselType, start_date: startDate, end_date: endDate }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`;
+      try { const e = await res.json(); detail = (e as { detail?: string }).detail ?? detail; } catch { /* noop */ }
+      throw new Error(detail);
+    }
+    return (await res.json()) as ForecastSeriesResponse;
+  } finally { clearTimeout(timeout); }
+}
+
+/** Date-anchored forecast (preferred): server windows from latest_ds, never wall-clock today. */
+export async function fetchForecastNext(vesselType: string, days = 30): Promise<ForecastSeriesResponse> {
+  return getJson<ForecastSeriesResponse>(`/api/forecast-next?vessel_type=${encodeURIComponent(vesselType)}&days=${days}`);
+}
+
 /** Convenience: check if the backend is reachable */
 export async function checkBackendHealth(): Promise<boolean> {
   try {

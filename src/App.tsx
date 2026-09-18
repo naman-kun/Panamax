@@ -12,7 +12,7 @@ export function App() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>(() => {
     if (typeof window !== 'undefined') {
-      return window.location.hash === '#dashboard' ? 'dashboard' : 'landing';
+      return window.location.hash.startsWith('#dashboard') ? 'dashboard' : 'landing';
     }
     return 'landing';
   });
@@ -20,7 +20,7 @@ export function App() {
   // Sync hash routing
   useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#dashboard') {
+      if (window.location.hash.startsWith('#dashboard')) {
         setCurrentView('dashboard');
       } else {
         setCurrentView('landing');

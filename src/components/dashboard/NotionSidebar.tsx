@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { hashForRoute } from '@/pages/dashboard/routes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -407,7 +408,7 @@ export function NotionSidebar({
                 <button
                   key={item.id}
                   onClick={() => {
-                    onSelectPage(item.id as DashboardPageId);
+                    window.location.hash = hashForRoute(item.id as DashboardPageId); onSelectPage(item.id as DashboardPageId);
                     setSearchOpen(false);
                   }}
                   className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 text-zinc-300 hover:text-white text-left transition-colors"

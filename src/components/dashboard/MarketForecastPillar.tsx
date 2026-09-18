@@ -31,12 +31,18 @@ import {
   FinancialYAxisMode,
 } from '@/lib/simulationEngine';
 import { TradingViewChartTerminal } from './TradingViewChartTerminal';
+import { useLiveRouteSeries } from '@/hooks/useForecastSeries';
+import { useModelDrivers } from '@/hooks/useModelDrivers';
 
+interface SharedLive { isLive: boolean; isLoading: boolean; history: { ds: string }[]; forecast: unknown[]; livePanamax: import("@/lib/simulationEngine").StockItem[]; liveBenchmark: import("@/lib/simulationEngine").StockItem[]; latestIndex: number | null; targetIndex: number | null; error: string | null }
+interface SharedDrivers { drivers: { feature: string; importance: number; weight: number }[]; isLoading: boolean; error: string | null }
 interface MarketForecastPillarProps {
   source: PortInfo;
   destination: DestinationPortInfo;
   vesselClass: VesselClassSpec;
   cargoQuantityMT: number;
+  live?: SharedLive;
+  drivers?: SharedDrivers;
 }
 
 export function MarketForecastPillar({
@@ -44,15 +50,26 @@ export function MarketForecastPillar({
   destination,
   vesselClass,
   cargoQuantityMT,
+  live: liveProp,
+  drivers: driversProp,
 }: MarketForecastPillarProps) {
   const [timeframe, setTimeframe] = useState<'1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL'>('1Y');
   const [yAxisMode, setYAxisMode] = useState<FinancialYAxisMode>('PercentChange');
   const [expandDrivers, setExpandDrivers] = useState(true);
   const [completedTasks, setCompletedTasks] = useState<number[]>([0]);
 
-  const routeData = useMemo(() => {
+  const fallbackRouteData = useMemo(() => {
     return generateRouteFinancialData(source.id, destination.id, timeframe, vesselClass.id, yAxisMode);
   }, [source.id, destination.id, timeframe, vesselClass.id, yAxisMode]);
+  const fallbackLive = useLiveRouteSeries({ vesselId: vesselClass.id, sourceId: source.id, destId: destination.id, horizonDays: 30 });
+  const fallbackDrivers = useModelDrivers(vesselClass.id);
+  const liveSeries = liveProp ?? fallbackLive;
+  const liveDrivers = driversProp ?? fallbackDrivers;
+  const routeData = liveSeries.isLive
+    ? { ...fallbackRouteData, panamaxForecast: liveSeries.livePanamax, marketBenchmark: liveSeries.liveBenchmark,
+        currentBpiPoints: liveSeries.latestIndex ?? fallbackRouteData.currentBpiPoints,
+        targetBpiPoints: liveSeries.targetIndex ?? fallbackRouteData.targetBpiPoints }
+    : fallbackRouteData;
 
   const entryTiming = useMemo(() => {
     return computeEntryTiming(routeData, cargoQuantityMT);
@@ -76,6 +93,13 @@ export function MarketForecastPillar({
   return (
     <div className="space-y-6 text-left">
       
+      {/* Live model banner: every graphic here renders backend LightGBM output when reachable */}
+      <div className="px-1 text-[11px] font-mono text-zinc-400">
+        {liveSeries.isLoading ? "Loading live LightGBM forecast series..." : liveSeries.isLive
+          ? `Live model chart: Baltic history ${liveSeries.history.length} pts + 30-day LightGBM forecast (${liveSeries.latestIndex} -> ${liveSeries.targetIndex}). SHAP: ${(liveDrivers.drivers[0] && liveDrivers.drivers[0].feature) ?? "loading..."}.`
+          : `Backend offline — synthetic fallback chart. (${liveSeries.error ?? "start npm run dev backend"})`}
+      </div>
+
       {/* 1. TradingView Style Financial Terminal */}
       <TradingViewChartTerminal
         source={source}
